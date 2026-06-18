@@ -259,7 +259,7 @@ class Document(DocumentBase):
     id: int
     user_id: int
     file_path: str
-    file_size: int = 0
+    file_size: Optional[int] = 0
     consultation_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime

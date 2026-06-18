@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from .. import models, schemas, crud
+from ..models import LawyerStatus
 from ..database import get_db
 from ..security import get_current_user, require_role
 
 router = APIRouter(prefix="/admin", tags=["管理"])
 
 
-@router.get("/stats", response_model=schemas.StatsResponse)
+@router.get("/stats", response_model=schemas.AdminStats)
 def get_stats(
     current_admin: models.User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
@@ -18,11 +19,14 @@ def get_stats(
 
 @router.get("/lawyers", response_model=List[schemas.LawyerProfile])
 def get_pending_lawyers(
+    status_filter: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
     current_admin: models.User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
 ):
+    if status_filter == "pending":
+        return db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.PENDING).offset(skip).limit(limit).all()
     return crud.list_lawyers(db, skip=skip, limit=limit)
 
 

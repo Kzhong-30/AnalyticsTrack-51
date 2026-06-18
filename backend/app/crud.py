@@ -1,6 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from . import models
+from .models import LawyerStatus
 from .security import hash_password, verify_password
 
 
@@ -87,7 +88,7 @@ def update_lawyer_profile(db: Session, profile_id: int, **kwargs) -> Optional[mo
 
 
 def list_lawyers(db: Session, skip: int = 0, limit: int = 100, category: Optional[str] = None) -> List[models.LawyerProfile]:
-    query = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == "approved")
+    query = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.APPROVED)
     if category:
         query = query.filter(models.LawyerProfile.category == category)
     return query.offset(skip).limit(limit).all()
@@ -129,7 +130,7 @@ def update_consultation(db: Session, consultation_id: int, **kwargs) -> Optional
 
 
 def match_lawyers(db: Session, category: Optional[str] = None, skip: int = 0, limit: int = 10) -> List[models.LawyerProfile]:
-    query = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == "approved")
+    query = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.APPROVED)
     if category:
         query = query.filter(models.LawyerProfile.category == category)
     query = query.order_by(models.LawyerProfile.rating.desc())
@@ -296,7 +297,7 @@ def get_document_template(db: Session, template_id: int) -> Optional[models.Docu
 
 def get_stats(db: Session) -> dict:
     user_count = db.query(models.User).count()
-    lawyer_count = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == "approved").count()
+    lawyer_count = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.APPROVED).count()
     consultation_count = db.query(models.Consultation).count()
     appointment_count = db.query(models.Appointment).count()
     document_count = db.query(models.Document).count()
@@ -308,7 +309,7 @@ def get_stats(db: Session) -> dict:
         "total_appointments": appointment_count,
         "total_documents": document_count,
         "total_knowledge_entries": knowledge_count,
-        "total_pending_lawyers": 0,
-        "total_complaints": 0,
-        "total_pending_complaints": 0,
+        "total_pending_lawyers": db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.PENDING).count(),
+        "total_complaints": db.query(models.Complaint).count(),
+        "total_pending_complaints": db.query(models.Complaint).filter(models.Complaint.status == "pending").count(),
     }

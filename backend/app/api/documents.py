@@ -32,7 +32,19 @@ def generate_document(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return crud.create_document(db, user_id=current_user.id, title="生成的文档", file_path="generated.docx", document_type=DocumentType.OTHER)
+    template = crud.get_document_template(db, template_id=document_generate.template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="模板不存在")
+    generated_content = template.template_content
+    for key, value in document_generate.variables.items():
+        generated_content = generated_content.replace("{{" + key + "}}", str(value))
+    return crud.create_document(
+        db, user_id=current_user.id,
+        title=template.name + " - 生成文档",
+        file_path=f"generated/{template.name}_{current_user.id}.docx",
+        document_type=template.document_type or DocumentType.OTHER,
+        consultation_id=None,
+    )
 
 
 @router.get("/", response_model=List[schemas.Document])
