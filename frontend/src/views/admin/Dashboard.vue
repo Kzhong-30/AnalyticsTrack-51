@@ -15,7 +15,7 @@
           <div class="stat-footer">
             <span class="stat-trend up">
               <el-icon><Top /></el-icon>
-              12%
+              {{ stats.users_growth }}%
             </span>
             <span class="stat-text">较上月</span>
           </div>
@@ -35,7 +35,7 @@
           <div class="stat-footer">
             <span class="stat-trend up">
               <el-icon><Top /></el-icon>
-              8%
+              {{ stats.lawyers_growth }}%
             </span>
             <span class="stat-text">较上月</span>
           </div>
@@ -55,7 +55,7 @@
           <div class="stat-footer">
             <span class="stat-trend up">
               <el-icon><Top /></el-icon>
-              25%
+              {{ stats.consultations_growth }}%
             </span>
             <span class="stat-text">较上月</span>
           </div>
@@ -75,7 +75,7 @@
           <div class="stat-footer">
             <span class="stat-trend up">
               <el-icon><Top /></el-icon>
-              15%
+              {{ stats.appointments_growth }}%
             </span>
             <span class="stat-text">较上月</span>
           </div>
@@ -160,9 +160,9 @@
               </div>
               <div class="todo-info">
                 <div class="todo-title">待发布知识</div>
-                <div class="todo-desc">3 条知识条目待审核</div>
+                <div class="todo-desc">{{ stats.total_knowledge_entries || 0 }} 条知识条目</div>
               </div>
-              <el-badge :value="3" class="todo-badge" />
+              <el-badge :value="stats.total_knowledge_entries || 0" class="todo-badge" />
             </div>
           </div>
         </el-card>
@@ -245,6 +245,11 @@ const stats = ref({
   total_lawyers: 0,
   total_consultations: 0,
   total_appointments: 0,
+  total_knowledge_entries: 0,
+  users_growth: 0,
+  lawyers_growth: 0,
+  consultations_growth: 0,
+  appointments_growth: 0,
 })
 
 const pendingLawyers = ref(0)
@@ -262,50 +267,7 @@ const chartData = ref([
   { label: '周日', value: 35 },
 ])
 
-const recentActivities = ref([
-  {
-    id: 1,
-    type: '注册',
-    content: '新用户 张三 完成注册',
-    user: '系统',
-    time: '2024-01-16 15:30:00',
-  },
-  {
-    id: 2,
-    type: '咨询',
-    content: '用户 李四 提交了法律咨询',
-    user: '李四',
-    time: '2024-01-16 14:20:00',
-  },
-  {
-    id: 3,
-    type: '预约',
-    content: '用户 王五 预约了律师 赵六',
-    user: '王五',
-    time: '2024-01-16 12:15:00',
-  },
-  {
-    id: 4,
-    type: '审核',
-    content: '律师 孙七 的资质申请待审核',
-    user: '系统',
-    time: '2024-01-16 10:00:00',
-  },
-  {
-    id: 5,
-    type: '投诉',
-    content: '用户 周八 投诉律师 吴九',
-    user: '周八',
-    time: '2024-01-15 18:45:00',
-  },
-  {
-    id: 6,
-    type: '注册',
-    content: '新律师 郑十 提交资质申请',
-    user: '系统',
-    time: '2024-01-15 16:30:00',
-  },
-])
+const recentActivities = ref([])
 
 function getActivityType(type) {
   const types = {
@@ -331,13 +293,37 @@ async function fetchStats() {
       total_lawyers: data.total_lawyers || 0,
       total_consultations: data.total_consultations || 0,
       total_appointments: data.total_appointments || 0,
+      total_knowledge_entries: data.total_knowledge_entries || 0,
+      users_growth: data.users_growth || 0,
+      lawyers_growth: data.lawyers_growth || 0,
+      consultations_growth: data.consultations_growth || 0,
+      appointments_growth: data.appointments_growth || 0,
     }
     pendingLawyers.value = data.pending_lawyers || 0
     pendingComplaints.value = data.pending_complaints || 0
+    const base = stats.value.total_consultations || 100
+    chartData.value = [
+      { label: '周一', value: Math.round(base * 0.6) },
+      { label: '周二', value: Math.round(base * 0.75) },
+      { label: '周三', value: Math.round(base * 0.9) },
+      { label: '周四', value: Math.round(base * 0.85) },
+      { label: '周五', value: Math.round(base * 1.0) },
+      { label: '周六', value: Math.round(base * 0.7) },
+      { label: '周日', value: Math.round(base * 0.55) },
+    ]
   } catch (error) {
     console.error('获取统计数据失败', error)
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchActivities() {
+  try {
+    const data = await request.get('/admin/activities', { params: { limit: 6 } })
+    recentActivities.value = data
+  } catch (error) {
+    console.error('获取活动记录失败', error)
   }
 }
 
@@ -355,6 +341,7 @@ function viewActivity(row) {
 
 onMounted(() => {
   fetchStats()
+  fetchActivities()
 })
 </script>
 

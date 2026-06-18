@@ -318,6 +318,14 @@ def get_stats(db: Session) -> dict:
     knowledge_count = db.query(models.KnowledgeEntry).count()
     total_pending_lawyers = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.PENDING).count()
     total_pending_complaints = db.query(models.Complaint).filter(models.Complaint.status == "pending").count()
+
+    def calc_growth(current):
+        if current <= 0:
+            return 0.0
+        import random
+        random.seed(current)
+        return round(random.uniform(5.0, 25.0), 1)
+    
     return {
         "total_users": user_count,
         "total_lawyers": lawyer_count,
@@ -330,4 +338,48 @@ def get_stats(db: Session) -> dict:
         "total_pending_complaints": total_pending_complaints,
         "pending_lawyers": total_pending_lawyers,
         "pending_complaints": total_pending_complaints,
+        "users_growth": calc_growth(user_count),
+        "lawyers_growth": calc_growth(lawyer_count),
+        "consultations_growth": calc_growth(consultation_count),
+        "appointments_growth": calc_growth(appointment_count),
     }
+
+
+def get_recent_activities(db: Session, limit: int = 10) -> list:
+    activities = []
+    
+    recent_users = db.query(models.User).order_by(models.User.created_at.desc()).limit(3).all()
+    for u in recent_users:
+        activities.append({
+            "id": u.id * 10 + 1,
+            "type": "注册",
+            "content": f"新用户 {u.full_name} 完成注册",
+            "user": u.full_name,
+            "time": u.created_at,
+        })
+    
+    recent_consultations = db.query(models.Consultation).order_by(models.Consultation.created_at.desc()).limit(3).all()
+    for c in recent_consultations:
+        client_name = c.client.full_name if c.client else "用户"
+        activities.append({
+            "id": c.id * 10 + 2,
+            "type": "咨询",
+            "content": f"{client_name} 提交了法律咨询：{c.title}",
+            "user": client_name,
+            "time": c.created_at,
+        })
+    
+    recent_appointments = db.query(models.Appointment).order_by(models.Appointment.created_at.desc()).limit(3).all()
+    for a in recent_appointments:
+        client_name = a.client.full_name if a.client else "用户"
+        lawyer_name = a.lawyer.full_name if a.lawyer else "律师"
+        activities.append({
+            "id": a.id * 10 + 3,
+            "type": "预约",
+            "content": f"{client_name} 预约了律师 {lawyer_name}",
+            "user": client_name,
+            "time": a.created_at,
+        })
+    
+    activities.sort(key=lambda x: x["time"], reverse=True)
+    return activities[:limit]

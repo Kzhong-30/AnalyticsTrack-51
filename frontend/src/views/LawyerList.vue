@@ -7,11 +7,6 @@
             <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="城市">
-          <el-select v-model="filterForm.city" placeholder="全部城市" clearable style="width: 150px">
-            <el-option v-for="city in cities" :key="city" :label="city" :value="city" />
-          </el-select>
-        </el-form-item>
         <el-form-item label="排序">
           <el-select v-model="filterForm.sort" style="width: 150px">
             <el-option label="综合排序" value="default" />
@@ -61,7 +56,6 @@ const loading = ref(false)
 
 const filterForm = reactive({
   category: "",
-  city: "",
   sort: "default"
 })
 
@@ -80,17 +74,15 @@ const categories = [
   { id: "company", name: "公司法务" }
 ]
 
-const cities = ["北京", "上海", "广州", "深圳", "杭州", "南京", "成都", "武汉", "西安", "重庆"]
 
 async function fetchLawyers() {
   loading.value = true
   try {
     const params = {
       page: pagination.page,
-      pageSize: pagination.pageSize
+      page_size: pagination.pageSize
     }
     if (filterForm.category) params.category = filterForm.category
-    if (filterForm.city) params.city = filterForm.city
     if (filterForm.sort) params.sort = filterForm.sort
     const res = await request.get("/lawyers", { params })
     lawyers.value = res.items || []
@@ -104,7 +96,6 @@ async function fetchLawyers() {
 
 onMounted(() => {
   if (route.query.category) filterForm.category = route.query.category
-  if (route.query.city) filterForm.city = route.query.city
   fetchLawyers()
 })
 </script>

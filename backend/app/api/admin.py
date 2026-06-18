@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from .. import models, schemas, crud
@@ -82,3 +82,12 @@ def create_document_template(
     db: Session = Depends(get_db),
 ):
     return crud.create_document_template(db, name=template.name, template_content=template.template_content, description=template.description, document_type=template.document_type, category=template.category, variables=template.variables, is_active=template.is_active, created_by=current_admin.id)
+
+@router.get("/activities")
+def get_recent_activities(
+    limit: int = Query(10, ge=1, le=50, description="返回数量"),
+    current_admin: models.User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    return crud.get_recent_activities(db, limit=limit)
+

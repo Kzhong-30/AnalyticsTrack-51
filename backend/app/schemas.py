@@ -414,6 +414,18 @@ class AdminStats(StatsResponse):
     total_pending_complaints: int = 0
     pending_lawyers: int = 0
     pending_complaints: int = 0
+    users_growth: float = 0.0
+    lawyers_growth: float = 0.0
+    consultations_growth: float = 0.0
+    appointments_growth: float = 0.0
+
+
+class ActivityItem(BaseModel):
+    id: int
+    type: str
+    content: str
+    user: str
+    time: datetime
 
 
 class LawyerListResponse(BaseModel):

@@ -4,6 +4,7 @@ from typing import List, Optional
 from .. import models, schemas, crud
 from ..database import get_db
 from ..security import get_current_user, require_role
+from ..models import LawyerStatus
 
 router = APIRouter(prefix="/lawyers", tags=["律师"])
 
@@ -11,13 +12,24 @@ router = APIRouter(prefix="/lawyers", tags=["律师"])
 @router.get("/", response_model=schemas.LawyerListResponse)
 def get_lawyers(
     category: Optional[str] = Query(None, description="律师分类"),
+    city: Optional[str] = Query(None, description="城市"),
+    sort: Optional[str] = Query(None, description="排序方式"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
     db: Session = Depends(get_db),
 ):
     skip = (page - 1) * page_size
-    lawyers = crud.list_lawyers(db, category=category, skip=skip, limit=page_size)
-    total = crud.count_lawyers(db, category=category)
+    query = db.query(models.LawyerProfile).options(joinedload(models.LawyerProfile.user)).filter(models.LawyerProfile.status == LawyerStatus.APPROVED)
+    if category:
+        query = query.filter(models.LawyerProfile.category == category)
+    if sort == "rating":
+        query = query.order_by(models.LawyerProfile.rating.desc())
+    elif sort == "price":
+        query = query.order_by(models.LawyerProfile.consultation_fee.asc())
+    elif sort == "experience":
+        query = query.order_by(models.LawyerProfile.years_of_experience.desc())
+    total = query.count()
+    lawyers = query.offset(skip).limit(page_size).all()
     return {"items": lawyers, "total": total}
 
 
