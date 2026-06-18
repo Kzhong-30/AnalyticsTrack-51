@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from . import models
 from .models import LawyerStatus
 from .security import hash_password, verify_password
@@ -58,7 +58,7 @@ def update_user(db: Session, user_id: int, **kwargs) -> Optional[models.User]:
     return db_user
 
 def get_lawyer_profile(db: Session, lawyer_id: int) -> Optional[models.LawyerProfile]:
-    return db.query(models.LawyerProfile).filter(models.LawyerProfile.id == lawyer_id).first()
+    return db.query(models.LawyerProfile).options(joinedload(models.LawyerProfile.user)).filter(models.LawyerProfile.id == lawyer_id).first()
 
 
 def get_lawyer_by_user_id(db: Session, user_id: int) -> Optional[models.LawyerProfile]:
@@ -87,14 +87,21 @@ def update_lawyer_profile(db: Session, profile_id: int, **kwargs) -> Optional[mo
     return db_profile
 
 
-def list_lawyers(db: Session, skip: int = 0, limit: int = 100, category: Optional[str] = None) -> List[models.LawyerProfile]:
+def count_lawyers(db: Session, category: Optional[str] = None) -> int:
     query = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.APPROVED)
+    if category:
+        query = query.filter(models.LawyerProfile.category == category)
+    return query.count()
+
+
+def list_lawyers(db: Session, skip: int = 0, limit: int = 100, category: Optional[str] = None, city: Optional[str] = None) -> List[models.LawyerProfile]:
+    query = db.query(models.LawyerProfile).options(joinedload(models.LawyerProfile.user)).filter(models.LawyerProfile.status == LawyerStatus.APPROVED)
     if category:
         query = query.filter(models.LawyerProfile.category == category)
     return query.offset(skip).limit(limit).all()
 
 
-def create_consultation(db: Session, client_id: int, lawyer_id: int, title: str, **kwargs) -> models.Consultation:
+def create_consultation(db: Session, client_id: int, title: str, lawyer_id: int = None, **kwargs) -> models.Consultation:
     db_consultation = models.Consultation(
         client_id=client_id,
         lawyer_id=lawyer_id,
@@ -130,14 +137,21 @@ def update_consultation(db: Session, consultation_id: int, **kwargs) -> Optional
 
 
 def match_lawyers(db: Session, category: Optional[str] = None, skip: int = 0, limit: int = 10) -> List[models.LawyerProfile]:
-    query = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.APPROVED)
+    query = db.query(models.LawyerProfile).options(joinedload(models.LawyerProfile.user)).filter(models.LawyerProfile.status == LawyerStatus.APPROVED)
     if category:
         query = query.filter(models.LawyerProfile.category == category)
     query = query.order_by(models.LawyerProfile.rating.desc())
     return query.offset(skip).limit(limit).all()
 
 
-def create_appointment(db: Session, client_id: int, lawyer_id: int, title: str, appointment_date, start_time, end_time, **kwargs) -> models.Appointment:
+def create_appointment(db: Session, client_id: int, lawyer_id: int, title: str = "法律咨询预约", appointment_date=None, start_time=None, end_time=None, **kwargs) -> models.Appointment:
+    appointment_time = kwargs.pop("appointment_time", None)
+    if appointment_date is None and appointment_time:
+        from datetime import datetime as dt, timedelta
+        parsed = dt.strptime(appointment_time, "%Y-%m-%d %H:%M")
+        appointment_date = parsed.date()
+        start_time = parsed.time()
+        end_time = (parsed + timedelta(hours=1)).time()
     db_appointment = models.Appointment(
         client_id=client_id,
         lawyer_id=lawyer_id,
@@ -158,7 +172,7 @@ def get_appointment(db: Session, appointment_id: int) -> Optional[models.Appoint
 
 
 def get_user_appointments(db: Session, user_id: int, skip: int = 0, limit: int = 100) -> List[models.Appointment]:
-    return db.query(models.Appointment).filter(models.Appointment.client_id == user_id).offset(skip).limit(limit).all()
+    return db.query(models.Appointment).options(joinedload(models.Appointment.client), joinedload(models.Appointment.lawyer)).filter(models.Appointment.client_id == user_id).offset(skip).limit(limit).all()
 
 
 def get_lawyer_appointments(db: Session, lawyer_id: int, skip: int = 0, limit: int = 100) -> List[models.Appointment]:
@@ -302,6 +316,8 @@ def get_stats(db: Session) -> dict:
     appointment_count = db.query(models.Appointment).count()
     document_count = db.query(models.Document).count()
     knowledge_count = db.query(models.KnowledgeEntry).count()
+    total_pending_lawyers = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.PENDING).count()
+    total_pending_complaints = db.query(models.Complaint).filter(models.Complaint.status == "pending").count()
     return {
         "total_users": user_count,
         "total_lawyers": lawyer_count,
@@ -309,7 +325,9 @@ def get_stats(db: Session) -> dict:
         "total_appointments": appointment_count,
         "total_documents": document_count,
         "total_knowledge_entries": knowledge_count,
-        "total_pending_lawyers": db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.PENDING).count(),
+        "total_pending_lawyers": total_pending_lawyers,
         "total_complaints": db.query(models.Complaint).count(),
-        "total_pending_complaints": db.query(models.Complaint).filter(models.Complaint.status == "pending").count(),
+        "total_pending_complaints": total_pending_complaints,
+        "pending_lawyers": total_pending_lawyers,
+        "pending_complaints": total_pending_complaints,
     }

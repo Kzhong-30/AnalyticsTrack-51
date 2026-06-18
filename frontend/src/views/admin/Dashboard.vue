@@ -326,19 +326,16 @@ async function fetchStats() {
   loading.value = true
   try {
     const data = await request.get('/admin/stats')
-    stats.value = data
-    pendingLawyers.value = data?.pending_lawyers || 5
-    pendingComplaints.value = data?.pending_complaints || 3
+    stats.value = {
+      total_users: data.total_users || 0,
+      total_lawyers: data.total_lawyers || 0,
+      total_consultations: data.total_consultations || 0,
+      total_appointments: data.total_appointments || 0,
+    }
+    pendingLawyers.value = data.pending_lawyers || 0
+    pendingComplaints.value = data.pending_complaints || 0
   } catch (error) {
     console.error('获取统计数据失败', error)
-    stats.value = {
-      total_users: 1258,
-      total_lawyers: 86,
-      total_consultations: 2345,
-      total_appointments: 678,
-    }
-    pendingLawyers.value = 5
-    pendingComplaints.value = 3
   } finally {
     loading.value = false
   }

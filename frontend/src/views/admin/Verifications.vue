@@ -446,11 +446,7 @@ async function approveLawyer(row) {
       }
     } catch (error) {
       console.error('审核失败', error)
-      ElMessage.success('审核通过成功')
-      row.status = 'approved'
-      if (currentLawyer.value?.id === row.id) {
-        currentLawyer.value.status = 'approved'
-      }
+      ElMessage.error('审核操作失败')
     }
   } catch (error) {
     console.log('取消操作')
@@ -483,13 +479,7 @@ async function confirmReject() {
     }
   } catch (error) {
     console.error('拒绝失败', error)
-    ElMessage.success('已拒绝该律师申请')
-    rejectVisible.value = false
-    detailVisible.value = false
-    const lawyer = lawyerList.value.find(l => l.id === currentLawyer.value.id)
-    if (lawyer) {
-      lawyer.status = 'rejected'
-    }
+    ElMessage.error('拒绝操作失败')
   } finally {
     rejecting.value = false
   }

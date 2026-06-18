@@ -498,9 +498,7 @@ async function generateDocument() {
     fetchDocuments()
   } catch (error) {
     console.error('生成文书失败', error)
-    ElMessage.success('文书生成成功')
-    activeTab.value = 'history'
-    fetchDocuments()
+    ElMessage.error('文书生成失败')
   } finally {
     generating.value = false
   }

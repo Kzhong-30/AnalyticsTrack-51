@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from .. import models, schemas, crud
 from ..models import LawyerStatus
@@ -26,7 +26,7 @@ def get_pending_lawyers(
     db: Session = Depends(get_db),
 ):
     if status_filter == "pending":
-        return db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.PENDING).offset(skip).limit(limit).all()
+        return db.query(models.LawyerProfile).options(joinedload(models.LawyerProfile.user)).filter(models.LawyerProfile.status == LawyerStatus.PENDING).offset(skip).limit(limit).all()
     return crud.list_lawyers(db, skip=skip, limit=limit)
 
 

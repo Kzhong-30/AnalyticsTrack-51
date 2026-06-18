@@ -9,21 +9,21 @@
           </div>
           <div v-for="appt in upcomingAppointments" :key="appt.id" class="appointment-card">
             <div class="card-header">
-              <el-avatar :size="50" :src="appt.lawyerAvatar">{{ appt.lawyerName?.charAt(0) }}</el-avatar>
+              <el-avatar :size="50" >{{ (appt.lawyer_name || '律师').charAt(0) }}</el-avatar>
               <div class="lawyer-info">
-                <h3>{{ appt.lawyerName }}</h3>
-                <p>{{ appt.lawyerFirm }}</p>
+                <h3>{{ appt.lawyer_name || '律师' }}</h3>
+                <p>{{ appt.lawyer_firm || '' }}</p>
               </div>
               <el-tag :type="getStatusType(appt.status)" class="status-tag">{{ getStatusText(appt.status) }}</el-tag>
             </div>
             <div class="card-body">
               <div class="info-row">
                 <span class="label">咨询方式：</span>
-                <span class="value">{{ getTypeText(appt.type) }}</span>
+                <span class="value">{{ getTypeText(appt.appointment_type) }}</span>
               </div>
               <div class="info-row">
                 <span class="label">预约时间：</span>
-                <span class="value">{{ appt.appointmentTime }}</span>
+                <span class="value">{{ appt.appointment_date + ' ' + appt.start_time }}</span>
               </div>
             </div>
             <div class="card-footer">
@@ -39,21 +39,21 @@
           </div>
           <div v-for="appt in historyAppointments" :key="appt.id" class="appointment-card">
             <div class="card-header">
-              <el-avatar :size="50" :src="appt.lawyerAvatar">{{ appt.lawyerName?.charAt(0) }}</el-avatar>
+              <el-avatar :size="50" >{{ (appt.lawyer_name || '律师').charAt(0) }}</el-avatar>
               <div class="lawyer-info">
-                <h3>{{ appt.lawyerName }}</h3>
-                <p>{{ appt.lawyerFirm }}</p>
+                <h3>{{ appt.lawyer_name || '律师' }}</h3>
+                <p>{{ appt.lawyer_firm || '' }}</p>
               </div>
               <el-tag :type="getStatusType(appt.status)" class="status-tag">{{ getStatusText(appt.status) }}</el-tag>
             </div>
             <div class="card-body">
               <div class="info-row">
                 <span class="label">咨询方式：</span>
-                <span class="value">{{ getTypeText(appt.type) }}</span>
+                <span class="value">{{ getTypeText(appt.appointment_type) }}</span>
               </div>
               <div class="info-row">
                 <span class="label">预约时间：</span>
-                <span class="value">{{ appt.appointmentTime }}</span>
+                <span class="value">{{ appt.appointment_date + ' ' + appt.start_time }}</span>
               </div>
             </div>
           </div>
@@ -119,7 +119,7 @@ async function fetchAppointments() {
   loading.value = true
   try {
     const res = await request.get("/appointments")
-    appointments.value = res.data?.items || []
+    appointments.value = Array.isArray(res) ? res : []
   } catch (e) {
     console.error(e)
   } finally {
@@ -134,7 +134,7 @@ async function cancelAppointment(id) {
       cancelButtonText: "取消",
       type: "warning"
     })
-    await request.put(`/appointments/${id}/status`, { status: "cancelled" })
+    await request.put('/appointments/' + id, { status: 'cancelled' })
     ElMessage.success("预约已取消")
     fetchAppointments()
   } catch (e) {

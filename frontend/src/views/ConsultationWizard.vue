@@ -128,10 +128,14 @@ async function handleSubmit() {
   await step3FormRef.value?.validate()
   submitting.value = true
   try {
-    const res = await request.post("/consultations", form)
+    await request.post("/consultations", {
+      title: form.title,
+      description: form.description,
+      category: form.category
+    })
     ElMessage.success("发布成功，正在为您匹配律师...")
     setTimeout(() => {
-      router.push({ path: "/lawyers", query: { category: form.category, city: form.city } })
+      router.push("/lawyers")
     }, 1000)
   } catch (e) {
     console.error(e)

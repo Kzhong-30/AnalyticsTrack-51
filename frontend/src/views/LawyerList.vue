@@ -93,8 +93,8 @@ async function fetchLawyers() {
     if (filterForm.city) params.city = filterForm.city
     if (filterForm.sort) params.sort = filterForm.sort
     const res = await request.get("/lawyers", { params })
-    lawyers.value = res.data?.items || []
-    pagination.total = res.data?.total || 0
+    lawyers.value = res.items || []
+    pagination.total = res.total || 0
   } catch (e) {
     console.error(e)
   } finally {

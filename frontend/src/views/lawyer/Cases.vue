@@ -384,8 +384,7 @@ async function submitOpinion() {
     legalOpinion.value = opinionForm.value.content
   } catch (error) {
     console.error('提交意见失败', error)
-    ElMessage.success('法律意见提交成功')
-    legalOpinion.value = opinionForm.value.content
+    ElMessage.error('提交意见失败')
   } finally {
     submitting.value = false
   }
@@ -413,10 +412,7 @@ async function completeCase() {
       fetchCases()
     } catch (error) {
       console.error('完成案件失败', error)
-      ElMessage.success('案件已完成')
-      detailVisible.value = false
-      currentCase.value.status = 'completed'
-      fetchCases()
+      ElMessage.error('完成案件失败')
     } finally {
       completing.value = false
     }

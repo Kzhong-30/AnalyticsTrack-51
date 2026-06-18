@@ -375,15 +375,9 @@ async function markProcessing() {
     }
   } catch (error) {
     console.error('标记失败', error)
-    ElMessage.success('已标记为处理中')
-    currentComplaint.value.status = 'processing'
-    const complaint = complaintList.value.find(c => c.id === currentComplaint.value.id)
-    if (complaint) {
-      complaint.status = 'processing'
-    }
+    ElMessage.error('标记失败')
   }
 }
-
 async function submitReply() {
   if (!replyForm.value.content.trim()) {
     ElMessage.warning('请输入回复内容')
@@ -407,16 +401,7 @@ async function submitReply() {
     }
   } catch (error) {
     console.error('提交回复失败', error)
-    ElMessage.success('回复提交成功')
-    currentComplaint.value.reply = replyForm.value.content
-    currentComplaint.value.status = 'resolved'
-    currentComplaint.value.handled_at = new Date().toISOString()
-    const complaint = complaintList.value.find(c => c.id === currentComplaint.value.id)
-    if (complaint) {
-      complaint.status = 'resolved'
-      complaint.reply = replyForm.value.content
-      complaint.handled_at = currentComplaint.value.handled_at
-    }
+    ElMessage.error('提交回复失败')
   } finally {
     submitting.value = false
   }

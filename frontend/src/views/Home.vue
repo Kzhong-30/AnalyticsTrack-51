@@ -89,7 +89,7 @@ function goToCategory(cat) {
 async function fetchRecommendedLawyers() {
   try {
     const res = await request.get("/lawyers", { params: { page: 1, pageSize: 4 } })
-    recommendedLawyers.value = res.data?.items || []
+    recommendedLawyers.value = res.items || []
   } catch (e) {
     console.error(e)
   }

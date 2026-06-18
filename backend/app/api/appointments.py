@@ -14,7 +14,7 @@ def create_appointment(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return crud.create_appointment(db, client_id=current_user.id, lawyer_id=appointment.lawyer_id, title=appointment.title, description=appointment.description, appointment_type=appointment.appointment_type, appointment_date=appointment.appointment_date, start_time=appointment.start_time, end_time=appointment.end_time, location=appointment.location, meeting_link=appointment.meeting_link)
+    return crud.create_appointment(db, client_id=current_user.id, lawyer_id=appointment.lawyer_id, title=appointment.title, description=appointment.description, appointment_type=appointment.appointment_type, appointment_date=appointment.appointment_date, start_time=appointment.start_time, end_time=appointment.end_time, location=appointment.location, meeting_link=appointment.meeting_link, appointment_time=appointment.appointment_time)
 
 
 @router.get("/", response_model=List[schemas.Appointment])

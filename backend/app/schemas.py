@@ -1,6 +1,6 @@
 from datetime import datetime, date, time
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from .models import (
     UserRole,
@@ -87,7 +87,31 @@ class LawyerProfile(LawyerProfileBase):
     verified_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    full_name: Optional[str] = None
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    avatar: Optional[str] = None
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def fill_user_fields(cls, values):
+        obj = values
+        if isinstance(values, dict):
+            return values
+        if hasattr(obj, "user") and obj.user is not None:
+            if not getattr(obj, "full_name", None):
+                values.full_name = obj.user.full_name
+            if not getattr(obj, "username", None):
+                values.username = obj.user.username
+            if not getattr(obj, "email", None):
+                values.email = obj.user.email
+            if not getattr(obj, "phone", None):
+                values.phone = obj.user.phone
+            if not getattr(obj, "avatar", None):
+                values.avatar = obj.user.avatar
+        return values
 
 
 class LawyerCreate(BaseModel):
@@ -160,7 +184,7 @@ class ConsultationBase(BaseModel):
 
 
 class ConsultationCreate(ConsultationBase):
-    lawyer_id: int
+    lawyer_id: Optional[int] = None
 
 
 class ConsultationUpdate(BaseModel):
@@ -179,16 +203,18 @@ class Consultation(ConsultationBase):
     ended_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    client_name: Optional[str] = None
+    lawyer_name: Optional[str] = None
     model_config = {"from_attributes": True}
 
 
 class AppointmentBase(BaseModel):
-    title: str = Field(..., max_length=200)
+    title: Optional[str] = Field("法律咨询预约", max_length=200)
     description: Optional[str] = None
     appointment_type: AppointmentType = AppointmentType.ONLINE
-    appointment_date: date
-    start_time: time
-    end_time: time
+    appointment_date: Optional[date] = None
+    start_time: Optional[time] = None
+    end_time: Optional[time] = None
     location: Optional[str] = Field(None, max_length=255)
     meeting_link: Optional[str] = Field(None, max_length=255)
     status: AppointmentStatus = AppointmentStatus.PENDING
@@ -196,6 +222,7 @@ class AppointmentBase(BaseModel):
 
 class AppointmentCreate(AppointmentBase):
     lawyer_id: int
+    appointment_time: Optional[str] = None
 
 
 class AppointmentUpdate(BaseModel):
@@ -222,6 +249,9 @@ class Appointment(AppointmentBase):
     paid: bool = False
     created_at: datetime
     updated_at: datetime
+    client_name: Optional[str] = None
+    lawyer_name: Optional[str] = None
+    lawyer_firm: Optional[str] = None
     model_config = {"from_attributes": True}
 
 
@@ -382,3 +412,10 @@ class AdminStats(StatsResponse):
     total_pending_lawyers: int = 0
     total_complaints: int = 0
     total_pending_complaints: int = 0
+    pending_lawyers: int = 0
+    pending_complaints: int = 0
+
+
+class LawyerListResponse(BaseModel):
+    items: List[LawyerProfile]
+    total: int

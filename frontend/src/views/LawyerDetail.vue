@@ -2,23 +2,23 @@
   <div class="lawyer-detail-page" v-loading="loading">
     <div class="lawyer-header">
       <div class="lawyer-avatar">
-        <el-avatar :size="100" :src="lawyer.avatar">{{ lawyer.name?.charAt(0) }}</el-avatar>
+        <el-avatar :size="100" :src="lawyer.avatar">{{ lawyer.full_name?.charAt(0) }}</el-avatar>
       </div>
       <div class="lawyer-info">
-        <h1 class="lawyer-name">{{ lawyer.name }}</h1>
+        <h1 class="lawyer-name">{{ lawyer.full_name }}</h1>
         <div class="lawyer-meta">
-          <span class="firm">{{ lawyer.firm }}</span>
+          <span class="firm">{{ lawyer.firm_name }}</span>
           <span class="rating">
             <el-rate v-model="lawyer.rating" disabled show-score text-color="#ff9900" />
           </span>
-          <span class="experience">执业{{ lawyer.experienceYears }}年</span>
+          <span class="experience">执业{{ lawyer.years_of_experience }}年</span>
         </div>
         <div class="lawyer-tags">
-          <el-tag v-for="tag in lawyer.specialties" :key="tag" type="info" style="margin-right: 8px;">{{ tag }}</el-tag>
+          <el-tag v-for="tag in (lawyer.specialties || '').split(',').filter(s => s.trim())" :key="tag" type="info" style="margin-right: 8px;">{{ tag }}</el-tag>
         </div>
       </div>
       <div class="lawyer-price">
-        <div class="price">¥{{ lawyer.consultFee }}<span>/次</span></div>
+        <div class="price">¥{{ lawyer.consultation_fee }}<span>/次</span></div>
         <div class="price-label">咨询费用</div>
       </div>
     </div>
@@ -29,19 +29,19 @@
           <div class="type-icon">💬</div>
           <h3>文字咨询</h3>
           <p>在线文字交流</p>
-          <div class="type-price">¥{{ lawyer.textFee || 100 }}/次</div>
+          <div class="type-price">¥{{ lawyer.consultation_fee || 0 }}/次</div>
         </div>
         <div class="consult-type" :class="{ active: consultType === 'voice' }" @click="consultType = 'voice'">
           <div class="type-icon">🎙️</div>
           <h3>语音咨询</h3>
           <p>语音通话</p>
-          <div class="type-price">¥{{ lawyer.voiceFee || 200 }}/次</div>
+          <div class="type-price">¥{{ lawyer.appointment_fee || 0 }}/次</div>
         </div>
         <div class="consult-type" :class="{ active: consultType === 'video' }" @click="consultType = 'video'">
           <div class="type-icon">📹</div>
           <h3>视频咨询</h3>
           <p>视频面对面</p>
-          <div class="type-price">¥{{ lawyer.videoFee || 300 }}/次</div>
+          <div class="type-price">¥{{ lawyer.appointment_fee || 0 }}/次</div>
         </div>
       </div>
       <div class="time-slots">
@@ -71,13 +71,13 @@
           <p>{{ lawyer.bio || "暂无简介" }}</p>
           <h3>擅长领域</h3>
           <div class="specialties">
-            <el-tag v-for="tag in lawyer.specialties" :key="tag" size="large" style="margin-right: 10px; margin-bottom: 10px;">{{ tag }}</el-tag>
+            <el-tag v-for="tag in (lawyer.specialties || '').split(',').filter(s => s.trim())" :key="tag" size="large" style="margin-right: 10px; margin-bottom: 10px;">{{ tag }}</el-tag>
           </div>
           <h3>执业信息</h3>
           <ul class="info-list">
-            <li><span>执业证号：</span>{{ lawyer.licenseNumber || "暂无" }}</li>
-            <li><span>所属律所：</span>{{ lawyer.firm || "暂无" }}</li>
-            <li><span>执业年限：</span>{{ lawyer.experienceYears || 0 }}年</li>
+            <li><span>执业证号：</span>{{ lawyer.license_number || "暂无" }}</li>
+            <li><span>所属律所：</span>{{ lawyer.firm_name || "暂无" }}</li>
+            <li><span>执业年限：</span>{{ lawyer.years_of_experience || 0 }}年</li>
           </ul>
         </div>
       </el-tab-pane>
@@ -119,24 +119,34 @@ const selectedTime = ref("")
 
 const lawyer = reactive({
   id: null,
-  name: "",
+  full_name: "",
   avatar: "",
-  firm: "",
+  firm_name: "",
   rating: 0,
-  reviewCount: 0,
-  experienceYears: 0,
-  specialties: [],
-  consultFee: 0,
+  review_count: 0,
+  years_of_experience: 0,
+  specialties: "",
+  consultation_fee: 0,
+  appointment_fee: 0,
   bio: "",
-  licenseNumber: ""
+  license_number: ""
 })
 
 const reviews = ref([])
-const availableSlots = [
-  "2024-01-15 09:00", "2024-01-15 10:00", "2024-01-15 14:00",
-  "2024-01-15 15:00", "2024-01-15 16:00", "2024-01-16 09:00",
-  "2024-01-16 10:00", "2024-01-16 14:00", "2024-01-16 15:00"
-]
+function generateSlots() {
+  const slots = []
+  const now = new Date()
+  for (let d = 1; d <= 3; d++) {
+    const date = new Date(now)
+    date.setDate(date.getDate() + d)
+    const dateStr = date.toISOString().split('T')[0]
+    for (let h = 9; h <= 17; h++) {
+      slots.push(`${dateStr} ${h.toString().padStart(2, '0')}:00`)
+    }
+  }
+  return slots
+}
+const availableSlots = generateSlots()
 
 function selectTime(slot) {
   selectedTime.value = slot
@@ -146,7 +156,7 @@ async function fetchLawyerDetail() {
   loading.value = true
   try {
     const res = await request.get(`/lawyers/${lawyerId}`)
-    Object.assign(lawyer, res.data || {})
+    Object.assign(lawyer, res || {})
   } catch (e) {
     console.error(e)
   } finally {
@@ -157,7 +167,7 @@ async function fetchLawyerDetail() {
 async function fetchReviews() {
   try {
     const res = await request.get(`/lawyers/${lawyerId}/reviews`)
-    reviews.value = res.data?.items || []
+    reviews.value = res || []
   } catch (e) {
     console.error(e)
   }
@@ -168,9 +178,9 @@ async function handleAppointment() {
   submitting.value = true
   try {
     await request.post("/appointments", {
-      lawyerId: lawyerId,
-      type: consultType.value,
-      appointmentTime: selectedTime.value
+      lawyer_id: parseInt(lawyerId),
+      appointment_type: consultType.value,
+      appointment_time: selectedTime.value
     })
     ElMessage.success("预约成功，请等待律师确认")
   } catch (e) {

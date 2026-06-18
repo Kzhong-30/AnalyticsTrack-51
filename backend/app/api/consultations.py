@@ -14,7 +14,14 @@ def create_consultation(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return crud.create_consultation(db, client_id=current_user.id, lawyer_id=consultation.lawyer_id, title=consultation.title, description=consultation.description, category=consultation.category)
+    lawyer_id = consultation.lawyer_id
+    if lawyer_id is None:
+        matched = crud.match_lawyers(db, category=consultation.category, limit=1)
+        if matched:
+            lawyer_id = matched[0].user_id
+        else:
+            lawyer_id = 1
+    return crud.create_consultation(db, client_id=current_user.id, title=consultation.title, lawyer_id=lawyer_id, description=consultation.description, category=consultation.category)
 
 
 @router.get("/", response_model=List[schemas.Consultation])
