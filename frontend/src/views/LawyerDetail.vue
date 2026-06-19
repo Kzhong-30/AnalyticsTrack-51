@@ -177,9 +177,10 @@ async function handleAppointment() {
   if (!selectedTime.value) return
   submitting.value = true
   try {
+    const typeMap = { text: "online", voice: "phone", video: "online" }
     await request.post("/appointments", {
       lawyer_id: parseInt(lawyerId),
-      appointment_type: consultType.value,
+      appointment_type: typeMap[consultType.value] || "online",
       appointment_time: selectedTime.value
     })
     ElMessage.success("预约成功，请等待律师确认")

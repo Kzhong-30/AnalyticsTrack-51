@@ -310,21 +310,41 @@ def get_document_template(db: Session, template_id: int) -> Optional[models.Docu
 
 
 def get_stats(db: Session) -> dict:
+    from datetime import datetime, timedelta
+    
+    now = datetime.utcnow()
+    seven_days_ago = now - timedelta(days=7)
+    fourteen_days_ago = now - timedelta(days=14)
+    
     user_count = db.query(models.User).count()
     lawyer_count = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.APPROVED).count()
     consultation_count = db.query(models.Consultation).count()
     appointment_count = db.query(models.Appointment).count()
     document_count = db.query(models.Document).count()
-    knowledge_count = db.query(models.KnowledgeEntry).count()
+    knowledge_count = db.query(models.KnowledgeEntry).filter(models.KnowledgeEntry.is_published == True).count()
+    total_unpublished_knowledge = db.query(models.KnowledgeEntry).filter(models.KnowledgeEntry.is_published == False).count()
     total_pending_lawyers = db.query(models.LawyerProfile).filter(models.LawyerProfile.status == LawyerStatus.PENDING).count()
     total_pending_complaints = db.query(models.Complaint).filter(models.Complaint.status == "pending").count()
 
-    def calc_growth(current):
-        if current <= 0:
-            return 0.0
-        import random
-        random.seed(current)
-        return round(random.uniform(5.0, 25.0), 1)
+    def calc_growth(model, status_filter=None):
+        query_this_week = db.query(model).filter(model.created_at >= seven_days_ago)
+        query_last_week = db.query(model).filter(model.created_at >= fourteen_days_ago, model.created_at < seven_days_ago)
+        
+        if status_filter is not None:
+            query_this_week = query_this_week.filter(*status_filter)
+            query_last_week = query_last_week.filter(*status_filter)
+        
+        this_week = query_this_week.count()
+        last_week = query_last_week.count()
+        
+        if last_week == 0:
+            return round(float(this_week) * 10, 1)
+        return round(((this_week - last_week) / last_week) * 100, 1)
+    
+    users_growth = calc_growth(models.User)
+    lawyers_growth = calc_growth(models.LawyerProfile, [models.LawyerProfile.status == LawyerStatus.APPROVED])
+    consultations_growth = calc_growth(models.Consultation)
+    appointments_growth = calc_growth(models.Appointment)
     
     return {
         "total_users": user_count,
@@ -333,16 +353,54 @@ def get_stats(db: Session) -> dict:
         "total_appointments": appointment_count,
         "total_documents": document_count,
         "total_knowledge_entries": knowledge_count,
+        "total_unpublished_knowledge": total_unpublished_knowledge,
         "total_pending_lawyers": total_pending_lawyers,
         "total_complaints": db.query(models.Complaint).count(),
         "total_pending_complaints": total_pending_complaints,
         "pending_lawyers": total_pending_lawyers,
         "pending_complaints": total_pending_complaints,
-        "users_growth": calc_growth(user_count),
-        "lawyers_growth": calc_growth(lawyer_count),
-        "consultations_growth": calc_growth(consultation_count),
-        "appointments_growth": calc_growth(appointment_count),
+        "users_growth": users_growth,
+        "lawyers_growth": lawyers_growth,
+        "consultations_growth": consultations_growth,
+        "appointments_growth": appointments_growth,
     }
+
+
+def get_trend_data(db: Session, period: str = 'week') -> list:
+    from datetime import datetime, timedelta
+    
+    now = datetime.utcnow()
+    days = 7 if period == 'week' else 30
+    start_date = now - timedelta(days=days - 1)
+    start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    date_counts = {}
+    for i in range(days):
+        d = start_date + timedelta(days=i)
+        date_str = d.strftime('%Y-%m-%d')
+        date_counts[date_str] = {'consultations': 0, 'appointments': 0}
+    
+    consultations = db.query(models.Consultation).filter(models.Consultation.created_at >= start_date).all()
+    for c in consultations:
+        date_str = c.created_at.strftime('%Y-%m-%d')
+        if date_str in date_counts:
+            date_counts[date_str]['consultations'] += 1
+    
+    appointments = db.query(models.Appointment).filter(models.Appointment.created_at >= start_date).all()
+    for a in appointments:
+        date_str = a.created_at.strftime('%Y-%m-%d')
+        if date_str in date_counts:
+            date_counts[date_str]['appointments'] += 1
+    
+    result = []
+    for date_str in sorted(date_counts.keys()):
+        result.append({
+            'date': date_str,
+            'consultations': date_counts[date_str]['consultations'],
+            'appointments': date_counts[date_str]['appointments']
+        })
+    
+    return result
 
 
 def get_recent_activities(db: Session, limit: int = 10) -> list:
@@ -355,7 +413,7 @@ def get_recent_activities(db: Session, limit: int = 10) -> list:
             "type": "注册",
             "content": f"新用户 {u.full_name} 完成注册",
             "user": u.full_name,
-            "time": u.created_at,
+            "time": u.created_at.isoformat(),
         })
     
     recent_consultations = db.query(models.Consultation).order_by(models.Consultation.created_at.desc()).limit(3).all()
@@ -366,7 +424,7 @@ def get_recent_activities(db: Session, limit: int = 10) -> list:
             "type": "咨询",
             "content": f"{client_name} 提交了法律咨询：{c.title}",
             "user": client_name,
-            "time": c.created_at,
+            "time": c.created_at.isoformat(),
         })
     
     recent_appointments = db.query(models.Appointment).order_by(models.Appointment.created_at.desc()).limit(3).all()
@@ -378,7 +436,7 @@ def get_recent_activities(db: Session, limit: int = 10) -> list:
             "type": "预约",
             "content": f"{client_name} 预约了律师 {lawyer_name}",
             "user": client_name,
-            "time": a.created_at,
+            "time": a.created_at.isoformat(),
         })
     
     activities.sort(key=lambda x: x["time"], reverse=True)

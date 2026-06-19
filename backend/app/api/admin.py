@@ -83,11 +83,20 @@ def create_document_template(
 ):
     return crud.create_document_template(db, name=template.name, template_content=template.template_content, description=template.description, document_type=template.document_type, category=template.category, variables=template.variables, is_active=template.is_active, created_by=current_admin.id)
 
-@router.get("/activities")
+@router.get("/activities", response_model=List[schemas.ActivityItem])
 def get_recent_activities(
     limit: int = Query(10, ge=1, le=50, description="返回数量"),
     current_admin: models.User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
 ):
     return crud.get_recent_activities(db, limit=limit)
+
+
+@router.get("/stats/trend")
+def get_trend(
+    period: str = Query("week", description="统计周期 week/month"),
+    current_admin: models.User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    return crud.get_trend_data(db, period=period)
 

@@ -78,12 +78,12 @@ const step2FormRef = ref(null)
 const step3FormRef = ref(null)
 
 const categories = [
-  { id: "marriage", name: "婚姻家庭", icon: "👨‍👩‍👧", desc: "离婚、财产分割、子女抚养" },
+  { id: "family", name: "婚姻家庭", icon: "👨‍👩‍👧", desc: "离婚、财产分割、子女抚养" },
   { id: "labor", name: "劳动纠纷", icon: "💼", desc: "劳动合同、工伤赔偿、社保" },
-  { id: "contract", name: "合同纠纷", icon: "📝", desc: "合同起草、违约纠纷" },
-  { id: "property", name: "房产纠纷", icon: "🏠", desc: "房屋买卖、租赁、物业" },
+  { id: "civil", name: "合同纠纷", icon: "📝", desc: "合同起草、违约纠纷" },
+  { id: "real_estate", name: "房产纠纷", icon: "🏠", desc: "房屋买卖、租赁、物业" },
   { id: "criminal", name: "刑事辩护", icon: "⚖️", desc: "刑事辩护、取保候审" },
-  { id: "company", name: "公司法务", icon: "🏢", desc: "公司设立、股权、合规" }
+  { id: "commercial", name: "公司法务", icon: "🏢", desc: "公司设立、股权、合规" }
 ]
 
 const cities = ["北京", "上海", "广州", "深圳", "杭州", "南京", "成都", "武汉", "西安", "重庆"]

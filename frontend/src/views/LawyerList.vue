@@ -66,12 +66,12 @@ const pagination = reactive({
 })
 
 const categories = [
-  { id: "marriage", name: "婚姻家庭" },
+  { id: "family", name: "婚姻家庭" },
   { id: "labor", name: "劳动纠纷" },
-  { id: "contract", name: "合同纠纷" },
-  { id: "property", name: "房产纠纷" },
+  { id: "civil", name: "合同纠纷" },
+  { id: "real_estate", name: "房产纠纷" },
   { id: "criminal", name: "刑事辩护" },
-  { id: "company", name: "公司法务" }
+  { id: "commercial", name: "公司法务" }
 ]
 
 

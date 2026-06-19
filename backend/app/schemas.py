@@ -409,6 +409,7 @@ class StatsResponse(BaseModel):
 
 
 class AdminStats(StatsResponse):
+    total_unpublished_knowledge: int = 0
     total_pending_lawyers: int = 0
     total_complaints: int = 0
     total_pending_complaints: int = 0
@@ -425,7 +426,13 @@ class ActivityItem(BaseModel):
     type: str
     content: str
     user: str
-    time: datetime
+    time: str
+
+
+class TrendItem(BaseModel):
+    date: str
+    consultations: int = 0
+    appointments: int = 0
 
 
 class LawyerListResponse(BaseModel):

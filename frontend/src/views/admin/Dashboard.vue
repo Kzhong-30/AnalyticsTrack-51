@@ -160,9 +160,9 @@
               </div>
               <div class="todo-info">
                 <div class="todo-title">待发布知识</div>
-                <div class="todo-desc">{{ stats.total_knowledge_entries || 0 }} 条知识条目</div>
+                <div class="todo-desc">{{ stats.total_unpublished_knowledge || 0 }} 条知识条目</div>
               </div>
-              <el-badge :value="stats.total_knowledge_entries || 0" class="todo-badge" />
+              <el-badge :value="stats.total_unpublished_knowledge || 0" class="todo-badge" />
             </div>
           </div>
         </el-card>
@@ -246,6 +246,7 @@ const stats = ref({
   total_consultations: 0,
   total_appointments: 0,
   total_knowledge_entries: 0,
+  total_unpublished_knowledge: 0,
   users_growth: 0,
   lawyers_growth: 0,
   consultations_growth: 0,
@@ -257,15 +258,7 @@ const pendingComplaints = ref(0)
 const chartPeriod = ref('week')
 const loading = ref(false)
 
-const chartData = ref([
-  { label: '周一', value: 30 },
-  { label: '周二', value: 45 },
-  { label: '周三', value: 60 },
-  { label: '周四', value: 40 },
-  { label: '周五', value: 70 },
-  { label: '周六', value: 55 },
-  { label: '周日', value: 35 },
-])
+const chartData = ref([])
 
 const recentActivities = ref([])
 
@@ -294,6 +287,7 @@ async function fetchStats() {
       total_consultations: data.total_consultations || 0,
       total_appointments: data.total_appointments || 0,
       total_knowledge_entries: data.total_knowledge_entries || 0,
+      total_unpublished_knowledge: data.total_unpublished_knowledge || 0,
       users_growth: data.users_growth || 0,
       lawyers_growth: data.lawyers_growth || 0,
       consultations_growth: data.consultations_growth || 0,
@@ -301,20 +295,22 @@ async function fetchStats() {
     }
     pendingLawyers.value = data.pending_lawyers || 0
     pendingComplaints.value = data.pending_complaints || 0
-    const base = stats.value.total_consultations || 100
-    chartData.value = [
-      { label: '周一', value: Math.round(base * 0.6) },
-      { label: '周二', value: Math.round(base * 0.75) },
-      { label: '周三', value: Math.round(base * 0.9) },
-      { label: '周四', value: Math.round(base * 0.85) },
-      { label: '周五', value: Math.round(base * 1.0) },
-      { label: '周六', value: Math.round(base * 0.7) },
-      { label: '周日', value: Math.round(base * 0.55) },
-    ]
   } catch (error) {
     console.error('获取统计数据失败', error)
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchTrendData() {
+  try {
+    const data = await request.get('/admin/stats/trend', { params: { period: chartPeriod.value } })
+    chartData.value = data.map(item => ({
+      label: item.date.slice(5),
+      value: item.consultations
+    }))
+  } catch (error) {
+    console.error('获取趋势数据失败', error)
   }
 }
 
@@ -341,6 +337,7 @@ function viewActivity(row) {
 
 onMounted(() => {
   fetchStats()
+  fetchTrendData()
   fetchActivities()
 })
 </script>
